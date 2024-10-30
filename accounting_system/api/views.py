@@ -36,8 +36,14 @@ def create_organization(request):
 
 @api_view(['POST'])
 def add_storage(request):
-    new_org = request.user.organization
-    serializer = OrgStorDistCreateSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    serializer.save(organization=new_org)
+    try:
+        new_org = request.user.organization
+        serializer = OrgStorDistCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(organization=new_org)
+    except Organization.DoesNotExist:
+        return Response(
+            {'errors': 'Вы не установили организацию.'},
+            status.HTTP_400_BAD_REQUEST
+        )
     return Response(serializer.data, status.HTTP_201_CREATED)
