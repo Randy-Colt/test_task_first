@@ -7,13 +7,13 @@ User = get_user_model()
 
 class Waste(models.Model):
     biowaste = models.PositiveSmallIntegerField(
-        verbose_name='Биоотходы', null=True, blank=True
+        verbose_name='Биоотходы', default=0, blank=True
     )
     glass = models.PositiveSmallIntegerField(
-        verbose_name='Стекло', null=True, blank=True
+        verbose_name='Стекло', default=0, blank=True
     )
     plastic = models.PositiveSmallIntegerField(
-        verbose_name='Пластик', null=True, blank=True
+        verbose_name='Пластик', default=0, blank=True
     )
     biowaste_max = models.PositiveSmallIntegerField(
         verbose_name='Предел биоотходов', default=0, blank=True
@@ -49,7 +49,9 @@ class Storage(models.Model):
     waste = models.OneToOneField(Waste, on_delete=models.CASCADE)
     nearby_storage = models.ManyToManyField(
         'self',
-        through='StorageDistance'
+        through='StorageDistance',
+        symmetrical=True,
+        through_fields=('storage', 'neighbour_storage')
     )
 
 
@@ -88,12 +90,16 @@ class StorageDistance(models.Model):
 
     class Meta:
         ordering = 'distance',
-        constraints = [
+        constraints = (
+            CheckConstraint(
+                check=~Q(storage=F('neighbour_storage')),
+                name='check_create_self_as_neighbour'
+            ),
             UniqueConstraint(
                 fields=('storage', 'neighbour_storage'),
                 name='check_storage_neighbour_unique_constraint'
             )
-        ]
+        )
 
 
 class OrganizationStorageDist(models.Model):

@@ -1,17 +1,25 @@
 from django.db import transaction
 
-from core.models import OrganizationStorageDist
+from core.models import OrganizationStorageDist, StorageDistance
 
 
-def set_all_storages(new_org, org_stor, dist) -> None:
+def set_dist_neighbour_storage(storage):
+    neighbours = StorageDistance.objects.filter(storage=storage)
+    as_neighbors = StorageDistance.objects.filter(neighbour_storage=storage)
+
+
+
+def set_all_storages(new_org, storage, dist) -> None:
     related_org = OrganizationStorageDist.objects.filter(
-            storage=org_stor).first()
+            storage=storage).first()
     related_org_dist = related_org.distance
     related_org = related_org.organization
+    neighbour_storages = []
+    if hasattr(storage, 'neighbour_storage'):
+        neighbour_storages = set_dist_neighbour_storage(storage)
     storages = OrganizationStorageDist.objects.filter(
-        organization=related_org).exclude(storage=org_stor)
-    # response = OrganizationStorageDist.objects.create(
-    #     organization=new_org, storage=org_stor, distance=dist)
+        organization=related_org)\
+            .exclude(storage=storage,storage__in=neighbour_storages)
     with transaction.atomic():
         OrganizationStorageDist.objects.bulk_create(
             OrganizationStorageDist(
@@ -20,4 +28,3 @@ def set_all_storages(new_org, org_stor, dist) -> None:
                 distance=dist + related_org_dist + obj.distance
             ) for obj in storages
         )
-    # return response

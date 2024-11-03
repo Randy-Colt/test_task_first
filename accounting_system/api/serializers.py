@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
-from api.add_storages import set_all_storages
+from core.constants import LIMITS_NAMES
 from core.models import (
-    Organization, OrganizationStorageDist, Storage, Waste)
+    Organization, OrganizationStorageDist, Waste)
 
 
 class WasteSerializer(serializers.ModelSerializer):
@@ -12,9 +12,10 @@ class WasteSerializer(serializers.ModelSerializer):
         exclude = 'id',
 
     def validate(self, attrs):
-        limits = (attrs.get('biowaste_max'), attrs.get('glass_max'), attrs.get('plastic_max'))
-        any_max = any(limits)
-        if not any_max:
+        limits = []
+        for name in LIMITS_NAMES:
+            limits.append(attrs.get(name))
+        if not any(limits):
             raise serializers.ValidationError(
                 'Должен быть установлен хотя бы один предел отходов.'
             )
@@ -91,11 +92,6 @@ class OrgStorDistCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         storage = validated_data.pop('storage')
-        dist = validated_data.get('distance')
-        new_org = validated_data.get('organization')
-        if not OrganizationStorageDist.objects.filter(organization=new_org)\
-            .exists():
-            set_all_storages(new_org, storage, dist)
         org_stor_dist = OrganizationStorageDist.objects.create(
             storage=storage, **validated_data)
         return org_stor_dist
