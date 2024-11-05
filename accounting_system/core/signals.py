@@ -3,6 +3,7 @@ from django.dispatch import receiver
 
 from core.models import OrganizationStorageDist, StorageDistance
 
+
 @receiver(post_save, sender=StorageDistance)
 def create_path_to_org(sender, instance, created, **kwargs):
     """

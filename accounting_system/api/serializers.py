@@ -1,11 +1,14 @@
 from rest_framework import serializers
 
-from core.constants import LIMITS_NAMES
+from core.constants import LIMITS_NAMES, WASTE_NAMES
 from core.models import (
     Organization, OrganizationStorageDist, Waste)
 
 
 class WasteSerializer(serializers.ModelSerializer):
+    """Сериализатор для работы с моделью отходов."""
+
+    free_space = serializers.SerializerMethodField()
 
     class Meta:
         model = Waste
@@ -26,16 +29,20 @@ class WasteSerializer(serializers.ModelSerializer):
                 )
         return attrs
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
+    def get_free_space(self, obj):
+        obj_dict = obj.__dict__
         result = {}
-        for key, value in representation.items():
-            if value is not None:
-                result[key] = value
+        names_len = len(WASTE_NAMES)
+        for index in range(names_len):
+            waste_name = WASTE_NAMES[index]
+            limit_name = LIMITS_NAMES[index]
+            result[waste_name] = obj_dict[limit_name] - obj_dict[waste_name]
         return result
 
 
 class OrgCreateSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания организации."""
+
     waste = WasteSerializer()
 
     class Meta:
@@ -48,12 +55,14 @@ class OrgCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        waste_dct = validated_data.pop('waste')
-        waste = Waste.objects.create(**waste_dct)
+        waste_dict = validated_data.pop('waste')
+        waste = Waste.objects.create(**waste_dict)
         return Organization.objects.create(waste=waste, **validated_data)
 
 
-class OrgStorageDistSerializer(serializers.ModelSerializer):
+class OrgStorDistSerializer(serializers.ModelSerializer):
+    """Сериализатор для вывода хранилищ и их расстояний до организации."""
+
     name = serializers.CharField(source='storage.name')
     waste = WasteSerializer(source='storage.waste')
 
@@ -62,15 +71,8 @@ class OrgStorageDistSerializer(serializers.ModelSerializer):
         fields = ('name', 'waste', 'distance')
 
 
-class StorageListSerializer(serializers.ModelSerializer):
-    storages = OrgStorageDistSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Organization
-        fields = 'storages',
-
-
 class OrgStorDistCreateSerializer(serializers.ModelSerializer):
+    """Сериализатор для записи расстоянии между организацией и хранилищем."""
 
     class Meta:
         model = OrganizationStorageDist
@@ -89,9 +91,3 @@ class OrgStorDistCreateSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError('Это поле не может быть пустым.')
         return value
-
-    def create(self, validated_data):
-        storage = validated_data.pop('storage')
-        org_stor_dist = OrganizationStorageDist.objects.create(
-            storage=storage, **validated_data)
-        return org_stor_dist
