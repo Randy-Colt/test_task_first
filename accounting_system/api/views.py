@@ -90,7 +90,7 @@ def send_waste(request):
         waste_stor = stor_dist.storage.waste.__dict__
         for index in range(length):
             waste_name = waste_names[index]
-            if org_waste_values.get(waste_name) is None:
+            if org_waste_values.get(waste_name) == 0:
                 continue
             limit_name = limits_names[index]
             if waste_stor[limit_name] - waste_stor[waste_name] == 0:
@@ -101,16 +101,16 @@ def send_waste(request):
                 waste_stor[waste_name] -= abs(res)
                 org_waste_values[waste_name] = abs(res)
             else:
-                del org_waste_values[waste_name]
+                org_waste_values[waste_name] = 0
                 org.waste.__dict__[waste_name] = 0
                 org.waste.save(update_fields=[waste_name])
             filled_storages.append(stor_dist.storage.waste)
-        length = len(org_waste_values)
-        if length == 0:
+        if not any(org_waste_values.values()):
             break
     if not filled_storages:
         return Response({'detail': 'Все хранилища уже заполнены.'})
     Waste.objects.bulk_update(filled_storages, waste_names)
+    print(org_waste_values)
     exccess = [name for name in org_waste_values
                if org_waste_values[name] > 0]
     if exccess:
