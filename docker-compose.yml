@@ -12,8 +12,10 @@ services:
       - pg_data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend/
+    build: ./accounting_system/
     env_file: .env
+    ports:
+      - 8000:8000
     depends_on:
       - db
     volumes:
