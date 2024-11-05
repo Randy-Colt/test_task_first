@@ -110,7 +110,6 @@ def send_waste(request):
     if not filled_storages:
         return Response({'detail': 'Все хранилища уже заполнены.'})
     Waste.objects.bulk_update(filled_storages, waste_names)
-    print(org_waste_values)
     exccess = [name for name in org_waste_values
                if org_waste_values[name] > 0]
     if exccess:
