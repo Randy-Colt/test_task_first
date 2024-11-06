@@ -36,7 +36,7 @@ class WasteSerializer(serializers.ModelSerializer):
         for index in range(names_len):
             waste_name = WASTE_NAMES[index]
             limit_name = LIMITS_NAMES[index]
-            result[waste_name] = obj_dict[limit_name] - obj_dict[waste_name]
+            result[waste_name] = obj_dict.get(limit_name, 0) - obj_dict.get(waste_name, 0)
         return result
 
 
